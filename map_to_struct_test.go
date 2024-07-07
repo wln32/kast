@@ -5,6 +5,7 @@ import (
 
 	"github.com/wln32/kast"
 )
+
 type testStructType82 struct {
 	Name        string  `json:"name"   `
 	CategoryId  string  `json:"categoryId" `
@@ -36,8 +37,8 @@ type testStructType8 struct {
 var mapFields8 = map[string]interface{}{
 	"name":        "github",
 	"score":       100,
-	"Age":         98,
-	"ID":          199,
+	"age":         98,
+	"id":          199,
 	"categoryId":  "1",
 	"price":       198.09,
 	"code":        "1",
@@ -61,4 +62,12 @@ func TestMapToStruct(t *testing.T) {
 	err := kast.MapToStruct(m, &dest)
 	t.Log(err)
 	t.Log(dest)
+}
+
+func Test_map_to_struct8(t *testing.T) {
+
+	structPointer8 := &testStructType8{}
+	err := kast.MapToStruct(mapFields8, structPointer8)
+	t.Log(err)
+	t.Logf("%+v", structPointer8)
 }

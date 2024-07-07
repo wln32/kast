@@ -7,6 +7,7 @@ import (
 
 // MapToStruct dest 必须是*struct或者**struct
 // 字段匹配机制：例如以下结构体和map
+//
 //	var src = map[string]any{
 //		"last-name": "lastName",
 //		"firstName": "firstName",
@@ -17,6 +18,7 @@ import (
 //		FirstName string `json:"firstName"`
 //		Name      string `json:"name"`
 //	}
+//
 // 解析出来的fieldInfo可能是以下的样子，tags包含json和字段名本身
 // fieldInfo{ fieldName=LastName  tags={lastName,LastName} }
 // fieldInfo{ fieldName=FirstName tags={firstName,FirstName} }
@@ -25,18 +27,18 @@ import (
 // firstName 和 name 都存在map中
 // LastName的两个tag在map中都找不到，会进入模糊匹配机制
 // 模糊匹配机制：
-//		忽略LastName的大小写，循环遍历map所有的key(key也会忽略大小写)
-//		直到匹配到为止，如果没有找到，则不进行任何操作
+//
+//	忽略LastName的大小写，循环遍历map所有的key(key也会忽略大小写)
+//	直到匹配到为止，如果没有找到，则不进行任何操作
 func MapToStruct(src map[string]any, dest any) (err error) {
-	return mapToStruct(src,dest,defaultMapToStructOptions)
+	return mapToStruct(src, dest, defaultMapToStructOptions)
 }
 
-func MapToStructWithOptions(src map[string]any, dest any,options MapToStructOptions) (err error) {
-	return mapToStruct(src,dest,options)
+func MapToStructWithOptions(src map[string]any, dest any, options MapToStructOptions) (err error) {
+	return mapToStruct(src, dest, options)
 }
 
-
-func mapToStruct(src map[string]any,dest any,options MapToStructOptions)(err error){
+func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err error) {
 	if src == nil || len(src) == 0 || dest == nil {
 		return nil
 	}
@@ -58,7 +60,7 @@ func mapToStruct(src map[string]any,dest any,options MapToStructOptions)(err err
 		structValue = structValue.Elem()
 	}
 
-	m2sInfo := getStructInfo(reflect.TypeOf(dest),options)
+	m2sInfo := getStructInfo(reflect.TypeOf(dest), options)
 	if m2sInfo == nil {
 		return nil
 	}
@@ -90,7 +92,7 @@ func mapToStruct(src map[string]any,dest any,options MapToStructOptions)(err err
 					}
 				}
 				matched = true
-				usedKey[tag] = struct{}{}
+				// usedKey[tag] = struct{}{}
 				break
 			}
 		}

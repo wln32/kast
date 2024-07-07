@@ -1,6 +1,7 @@
 package kast
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -57,7 +58,7 @@ func reflectToFloat64(src any) (float64, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return float64(val.Uint()), nil
 	case reflect.Float32, reflect.Float64:
-		return float64(val.Float()), nil
+		return val.Float(), nil
 	case reflect.String:
 		return strconv.ParseFloat(val.String(), 64)
 	case reflect.Bool:
@@ -70,6 +71,17 @@ func reflectToFloat64(src any) (float64, error) {
 	}
 }
 
+func sliceOrMapOrStructToString(val reflect.Value) (string, error) {
+	// TODO 配置开关,注册类型转换
+	s, err := json.Marshal(val.Interface())
+	return string(s), err
+}
+func sliceOrMapOrStructToBytes(val reflect.Value) ([]byte, error) {
+	// TODO 配置开关,注册类型转换
+	s, err := json.Marshal(val.Interface())
+	return s, err
+}
+
 func reflectToString(src any) (string, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
@@ -78,17 +90,24 @@ func reflectToString(src any) (string, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return strconv.FormatUint(val.Uint(), 64), nil
 	case reflect.Float32, reflect.Float64:
-		return strconv.FormatFloat((val.Float()), 'G', -1, 64), nil
+		return strconv.FormatFloat(val.Float(), 'G', -1, 64), nil
 	case reflect.String:
 		return val.String(), nil
+	case reflect.Bool:
+		return strconv.FormatBool(val.Bool()), nil
 	case reflect.Slice:
 		if val.Elem().Kind() == reflect.Uint8 {
 			return string(val.Bytes()), nil
 		}
-	case reflect.Bool:
-		return strconv.FormatBool(val.Bool()), nil
+		return sliceOrMapOrStructToString(val)
+	case reflect.Struct:
+		if val.Type().String() == "time.Time" {
+			return val.Interface().(time.Time).String(), nil
+		}
+		return sliceOrMapOrStructToString(val)
+	case reflect.Map:
+		return sliceOrMapOrStructToString(val)
 	default:
-		// time.Time
 	}
 	return "", fmt.Errorf("不支持的类型转换")
 }
@@ -118,25 +137,36 @@ func reflectToBytes(src any) ([]byte, error) {
 	case []byte:
 		return v, nil
 	}
-
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
 	case reflect.Slice:
 		if val.Elem().Kind() == reflect.Uint8 {
 			return val.Bytes(), nil
 		}
+		return sliceOrMapOrStructToBytes(val)
+	case reflect.Map:
+		return sliceOrMapOrStructToBytes(val)
+	case reflect.Struct:
+		if val.Type().String() == "time.Time" {
+			return val.Interface().(time.Time).MarshalJSON()
+		}
+		return sliceOrMapOrStructToBytes(val)
 	default:
 	}
 	return nil, fmt.Errorf("不支持的类型转换")
 }
 
+// TODO 注册类型到time.Time
 func reflectToTime(src any) (time.Time, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
-	case reflect.String:
+	case reflect.Struct:
+		if val.Type().String() == "time.Time" {
+			return val.Interface().(time.Time), nil
+		}
 	default:
 	}
-	panic("")
+	return time.Time{}, fmt.Errorf("不支持的类型转换")
 }
 
 func toInt64(src any) (int64, error) {
