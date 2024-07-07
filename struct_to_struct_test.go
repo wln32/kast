@@ -22,7 +22,7 @@ var srcStructFields8 = testStructType8{
 	ID:    199,
 }
 
-func TestStructToStruct(t *testing.T) {
+func Test_StructToStruct(t *testing.T) {
 	type Src struct {
 		Name string
 		Age  int
@@ -37,6 +37,14 @@ func TestStructToStruct(t *testing.T) {
 	err := kast.StructToStruct(Src{
 		Name: "wln", Age: 98,
 	}, &dest)
+	t.Log(err)
+	t.Log(dest)
+}
+
+func Test_struct_to_struct8(t *testing.T) {
+
+	dest := &testStructType82{}
+	err := kast.StructToStruct(srcStructFields8, dest)
 	t.Log(err)
 	t.Log(dest)
 }

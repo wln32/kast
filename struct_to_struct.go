@@ -3,27 +3,46 @@ package kast
 import (
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 var (
-	s2sInfosMap = map[reflect.Type]map[reflect.Type]*s2sInfo{}
+	// s2sInfosMap = map[reflect.Type]map[reflect.Type]*s2sInfo{}
+	s2sInfosMap = sync.Map{}
 )
 
 func addS2SInfoToMap(src, dest reflect.Type, info *s2sInfo) {
-	destMap := s2sInfosMap[src]
-	if destMap == nil {
-		destMap = make(map[reflect.Type]*s2sInfo)
-		s2sInfosMap[src] = destMap
+	//destMap := s2sInfosMap[src]
+	//if destMap == nil {
+	//	destMap = make(map[reflect.Type]*s2sInfo)
+	//	s2sInfosMap[src] = destMap
+	//}
+	//destMap[dest] = info
+
+	// destMap = make(map[reflect.Type]*s2sInfo)
+	destMap, ok := s2sInfosMap.Load(src)
+	if !ok {
+		destMap = &sync.Map{}
+		s2sInfosMap.Store(src, destMap)
 	}
-	destMap[dest] = info
+	destMap.(*sync.Map).Store(dest, info)
 }
 
 func getS2SInfoFromMap(src, dest reflect.Type) *s2sInfo {
-	destMap := s2sInfosMap[src]
-	if destMap == nil {
+	//destMap := s2sInfosMap[src]
+	//if destMap == nil {
+	//	return nil
+	//}
+	//return destMap[dest]
+	destMap, ok := s2sInfosMap.Load(src)
+	if !ok {
 		return nil
 	}
-	return destMap[dest]
+	info, ok := destMap.(*sync.Map).Load(dest)
+	if !ok {
+		return nil
+	}
+	return info.(*s2sInfo)
 }
 
 type s2sFieldInfo struct {

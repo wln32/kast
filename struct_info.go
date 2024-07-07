@@ -2,33 +2,39 @@ package kast
 
 import (
 	"reflect"
+	"sync"
 )
 
 var (
-	structInfoMap = map[reflect.Type]*structInfo{}
+	//  map[reflect.Type]*structInfo{}
+	structInfoMap = sync.Map{}
 )
 
 func addStructInfoToMap(info *structInfo) {
-	structInfoMap[info.structType] = info
+	structInfoMap.Store(info.structType, info)
 }
 
 func getStructInfoFromMap(typ reflect.Type) *structInfo {
-	info := structInfoMap[typ]
-	return info
+	// info := structInfoMap[typ]
+	info, ok := structInfoMap.Load(typ)
+	if ok {
+		return info.(*structInfo)
+	}
+	return nil
 }
 
 type structInfo struct {
 	fields map[string]*fieldInfo
 	//
-	listFields []*fieldInfo
+	listFields     []*fieldInfo
 	fieldListIndex map[string]int
 	// *struct  => struct
 	// **struct => struct
 	structType reflect.Type
 	//
-	fuzzyMatchFieldFunc func(srcMap map[string]any, fieldName string,usedMapKeys map[string]struct{})(mapKey string,mapValue any)
+	fuzzyMatchFieldFunc func(srcMap map[string]any, fieldName string, usedMapKeys map[string]struct{}) (mapKey string, mapValue any)
 	//
-	fieldTagsFunc func(structField reflect.StructField)[]string
+	fieldTagsFunc func(structField reflect.StructField) []string
 }
 
 func (s *structInfo) GetField(fieldName string) *fieldInfo {
@@ -59,12 +65,10 @@ func (s *structInfo) AddField(field reflect.StructField, fieldIndex []int) {
 	convFieldInfo.otherFieldIndex = append(convFieldInfo.otherFieldIndex, fieldIndex)
 }
 
-func(s *structInfo) getFieldTags(field reflect.StructField) []string {
-	tags:=s.fieldTagsFunc(field)
+func (s *structInfo) getFieldTags(field reflect.StructField) []string {
+	tags := s.fieldTagsFunc(field)
 	if tags == nil || len(tags) == 0 {
 		return []string{field.Name}
 	}
 	return tags
 }
-
-
