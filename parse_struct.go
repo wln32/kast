@@ -75,7 +75,7 @@ func parseStruct(structType reflect.Type, parentIndex []int, structInfo *structI
 			continue
 		}
 
-		// TODO: If it's an anonymous field with a tag, doesn't it need to be recursive?
+		// TODO:
 		if structField.Tag != "" {
 			structInfo.AddField(structField, append(parentIndex, i))
 		}

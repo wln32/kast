@@ -12,14 +12,6 @@ var (
 )
 
 func addS2SInfoToMap(src, dest reflect.Type, info *s2sInfo) {
-	//destMap := s2sInfosMap[src]
-	//if destMap == nil {
-	//	destMap = make(map[reflect.Type]*s2sInfo)
-	//	s2sInfosMap[src] = destMap
-	//}
-	//destMap[dest] = info
-
-	// destMap = make(map[reflect.Type]*s2sInfo)
 	destMap, ok := s2sInfosMap.Load(src)
 	if !ok {
 		destMap = &sync.Map{}
@@ -29,11 +21,6 @@ func addS2SInfoToMap(src, dest reflect.Type, info *s2sInfo) {
 }
 
 func getS2SInfoFromMap(src, dest reflect.Type) *s2sInfo {
-	//destMap := s2sInfosMap[src]
-	//if destMap == nil {
-	//	return nil
-	//}
-	//return destMap[dest]
 	destMap, ok := s2sInfosMap.Load(src)
 	if !ok {
 		return nil

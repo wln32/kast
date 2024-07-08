@@ -59,10 +59,22 @@ func (s *structInfo) AddField(field reflect.StructField, fieldIndex []int) {
 		s.listFields = append(s.listFields, info)
 		return
 	}
-	if convFieldInfo.otherFieldIndex == nil {
-		convFieldInfo.otherFieldIndex = make([][]int, 0, 2)
+	if convFieldInfo.otherField == nil {
+		convFieldInfo.otherField = make([]*fieldInfo, 0, 2)
 	}
-	convFieldInfo.otherFieldIndex = append(convFieldInfo.otherFieldIndex, fieldIndex)
+	if convFieldInfo.fieldType == field.Type {
+		convFieldInfo.otherField = append(convFieldInfo.otherField, convFieldInfo)
+		return
+	}
+	info := &fieldInfo{
+		fieldName:  field.Name,
+		tags:       s.getFieldTags(field),
+		fieldType:  field.Type,
+		fieldIndex: field.Index,
+		convFunc:   getMapToStructFieldConvertFunc(field.Type),
+	}
+	info.lastFuzzKey.Store(field.Name)
+	convFieldInfo.otherField = append(convFieldInfo.otherField, info)
 }
 
 func (s *structInfo) getFieldTags(field reflect.StructField) []string {

@@ -12,4 +12,10 @@ type StructToStructOptionFieldMappingFunc = func(srcStructType reflect.Type, des
 
 type StructToStructOptions struct {
 	FieldMappingFunc func(srcStructType reflect.Type, destFieldName string) reflect.StructField
+
+	DeepCopyPtrStruct bool
+	DeepCopySlice     bool
+	DeepCopyMap       bool
+	// DeepCopy = DeepCopyPtrStruct + DeepCopySlice + DeepCopyMap
+	DeepCopy bool
 }

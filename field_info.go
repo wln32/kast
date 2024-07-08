@@ -18,7 +18,8 @@ type fieldInfo struct {
 	convFunc func(dest reflect.Value, src any) error
 	// 主要用于重名的字段
 	// 一般是嵌套结构体才会有重名字段
-	otherFieldIndex [][]int
+	// TODO 需要根据字段类型不同重新设置convFunc
+	otherField []*fieldInfo
 	// lastFuzzKey string
 	lastFuzzKey atomic.Value
 }
@@ -31,11 +32,11 @@ func (c *fieldInfo) getFieldReflectValue(structValue reflect.Value) reflect.Valu
 }
 
 func (c *fieldInfo) getOtherFieldReflectValue(structValue reflect.Value, fieldLevel int) reflect.Value {
-	fieldIndex := c.otherFieldIndex[fieldLevel]
-	if len(fieldIndex) == 1 {
-		return structValue.Field(fieldIndex[0])
+	field := c.otherField[fieldLevel]
+	if len(field.fieldIndex) == 1 {
+		return structValue.Field(field.fieldIndex[0])
 	}
-	return fieldReflectValue(structValue, fieldIndex)
+	return fieldReflectValue(structValue, field.fieldIndex)
 }
 
 func fieldReflectValue(v reflect.Value, fieldIndex []int) reflect.Value {
@@ -122,9 +123,9 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 			return nil
 		}
 	case reflect.Struct:
-		// time.Time
+		return reflectToStruct(fieldType)
 	case reflect.Map:
-		// map[string]any
+		return reflectToMap
 	case reflect.Ptr:
 		conv := getMapToStructFieldConvertFunc(fieldType.Elem())
 		if conv != nil {

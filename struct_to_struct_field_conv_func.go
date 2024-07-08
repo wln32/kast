@@ -22,6 +22,10 @@ func sameStructTypeConv(src, dest reflect.Type) convFunc {
 	return func(dest, src reflect.Value) error {
 		switch deref {
 		case 0:
+			// 如果是一个字段的话
+			if dest.Kind() == reflect.Struct {
+				dest.Set(src.Elem())
+			}
 			// *struct => *struct
 			if src.IsNil() {
 				return nil
@@ -423,5 +427,52 @@ func convToMap(dest, src reflect.Type) convFunc {
 }
 
 func convToStruct(dest, src reflect.Type) convFunc {
-	panic(fmt.Errorf("暂时未实现convToStruct"))
+	src = typeElem(src)
+	dest = typeElem(dest)
+
+	switch src.Kind() {
+	case reflect.Map:
+
+	case reflect.Struct:
+		info := getOrSetS2SInfo(src, dest, defaultStructToStructOptions)
+		return toStruct(info)
+	}
+	panic(fmt.Errorf("不支持的src类型`%v`", src))
+}
+
+func toStruct(info *s2sInfo) func(destStructValue, srcStructValue reflect.Value) error {
+	return func(destStructValue, srcStructValue reflect.Value) error {
+		if info.sameTypeConv != nil {
+			return info.sameTypeConv(destStructValue, srcStructValue)
+		}
+		/////////////////////////////////////////////
+		if srcStructValue.Kind() == reflect.Ptr {
+			if srcStructValue.IsNil() {
+				return nil
+			}
+			srcStructValue = srcStructValue.Elem()
+		}
+		/////////////////////////////////////////
+		if destStructValue.Kind() == reflect.Ptr {
+			if destStructValue.IsNil() {
+				destStructValue.Set(reflect.New(destStructValue.Type().Elem()))
+			}
+			destStructValue = destStructValue.Elem()
+		}
+		if destStructValue.Kind() == reflect.Ptr {
+			if destStructValue.IsNil() {
+				destStructValue.Set(reflect.New(destStructValue.Type().Elem()))
+			}
+			destStructValue = destStructValue.Elem()
+		}
+		for _, fieldInfo := range info.listFields {
+			srcFieldValue := fieldInfo.src.getFieldReflectValue(srcStructValue)
+			destFieldValue := fieldInfo.dst.getFieldReflectValue(destStructValue)
+			err := fieldInfo.convFunc(destFieldValue, srcFieldValue)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }

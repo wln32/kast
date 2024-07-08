@@ -64,7 +64,6 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 	if m2sInfo == nil {
 		return nil
 	}
-
 	var (
 		ok          bool
 		matched     bool
@@ -74,7 +73,6 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 		val         any
 	)
 	defer putUsedKeyMap(usedKey)
-	// for fieldName, fieldInfo := range m2sInfo.fields {
 	for _, fieldInfo := range m2sInfo.listFields {
 		for _, tag := range fieldInfo.tags {
 			v, ok := src[tag]
@@ -84,7 +82,7 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 				if err != nil {
 					return err
 				}
-				for i := 0; i < len(fieldInfo.otherFieldIndex); i++ {
+				for i := 0; i < len(fieldInfo.otherField); i++ {
 					fieldValue := fieldInfo.getOtherFieldReflectValue(structValue, i)
 					err = fieldInfo.convFunc(fieldValue, v)
 					if err != nil {
@@ -103,7 +101,6 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 		lastFuzzKey = fieldInfo.lastFuzzKey.Load().(string)
 		val, ok = src[lastFuzzKey]
 		if !ok {
-
 			key, val = m2sInfo.fuzzyMatchFieldFunc(src, fieldInfo.fieldName, usedKey)
 		}
 		if key != "" {
@@ -115,7 +112,7 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 				if err != nil {
 					return err
 				}
-				for i := 0; i < len(fieldInfo.otherFieldIndex); i++ {
+				for i := 0; i < len(fieldInfo.otherField); i++ {
 					fieldValue = fieldInfo.getOtherFieldReflectValue(structValue, i)
 					err = fieldInfo.convFunc(fieldValue, val)
 					if err != nil {

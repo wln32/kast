@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+var (
+	timeType      = reflect.TypeOf((*time.Time)(nil)).Elem()
+	timePtrType   = reflect.PointerTo(timeType)
+	strAnyMapType = reflect.TypeOf((*map[string]any)(nil)).Elem()
+)
+
 func reflectToInt64(src any) (int64, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
@@ -156,7 +162,29 @@ func reflectToBytes(src any) ([]byte, error) {
 	return nil, fmt.Errorf("不支持的类型转换")
 }
 
-// TODO 注册类型到time.Time
+func reflectToStruct(dstType reflect.Type) func(dest reflect.Value, src any) error {
+	switch {
+	case dstType == timeType:
+		return func(dest reflect.Value, src any) error {
+			t, err := reflectToTime(src)
+			if err != nil {
+				return err
+			}
+			*dest.Addr().Interface().(*time.Time) = t
+			return nil
+		}
+	default:
+		return func(dest reflect.Value, src any) error {
+			srcValue := reflect.ValueOf(src)
+			srcValue = valueElem(srcValue)
+			if srcValue.Kind() == reflect.Struct {
+				return structToStruct(src, dest.Interface(), defaultStructToStructOptions)
+			}
+			return fmt.Errorf("不支持的类型`%T`转换", src)
+		}
+	}
+}
+
 func reflectToTime(src any) (time.Time, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
@@ -164,9 +192,19 @@ func reflectToTime(src any) (time.Time, error) {
 		if val.Type().String() == "time.Time" {
 			return val.Interface().(time.Time), nil
 		}
+	// case reflect.String: 字符串转time比较复杂，因为格式很多种
 	default:
 	}
 	return time.Time{}, fmt.Errorf("不支持的类型转换")
+}
+
+func reflectToMap(dstType reflect.Type) func(dest reflect.Value, src any) error {
+	if dstType == strAnyMapType {
+		return func(dest reflect.Value, src any) error {
+			return mapToStruct(src.(map[string]any), dest, defaultMapToStructOptions)
+		}
+	}
+	panic(fmt.Errorf("不支持的类型转换%v", dstType))
 }
 
 func toInt64(src any) (int64, error) {
