@@ -50,15 +50,63 @@ func (s2s *s2sInfo) AddField(srcField, dstField *fieldInfo) {
 		s2s.fields = map[string]*s2sFieldInfo{}
 	}
 	fieldInfo := &s2sFieldInfo{
-		src:      srcField,
-		dst:      dstField,
-		convFunc: getConvFunc(dstField.fieldType, srcField.fieldType),
+		src: srcField,
+		dst: dstField,
+		// 需要检测字段类型是否和当前结构体类型一致，
+		// 如果相同，不需要递归，否则会无限递归
+		// TODO： 循环引用
+		// convFunc: s2s.getS2SFieldConvFunc(dstField, srcField),
 	}
 	s2s.fields[dstField.fieldName] = fieldInfo
 	s2s.listFields = append(s2s.listFields, fieldInfo)
 }
 
-func getOrSetS2SInfo(src, dest reflect.Type, options StructToStructOptions) *s2sInfo {
+func (s2s *s2sInfo) SetFieldConv(info *s2sFieldInfo) {
+	info.convFunc = s2s.getS2SFieldConvFunc(info.dst, info.src)
+}
+
+func (s2s *s2sInfo) getS2SFieldConvFunc(dstField, srcField *fieldInfo) convFunc {
+
+	dstFieldType, dstDeref := typeElem(dstField.fieldType, 0)
+	srcFieldType, srcDeref := typeElem(srcField.fieldType, 0)
+
+	if srcFieldType.Kind() == reflect.Struct && dstFieldType.Kind() == reflect.Struct {
+		info := getOrSetS2SInfo(srcFieldType, dstFieldType, defaultStructToStructOptions)
+		conv := toStruct(info)
+		switch {
+		case dstDeref == 0 && srcDeref == 0:
+			//
+		case dstDeref == 1 && srcDeref == 1:
+			// conv = srcPtrConvFunc(destPtrConvFunc(conv))
+			conv = destPtrConvFunc(srcPtrConvFunc(conv))
+		case dstDeref == 0 && srcDeref == 1:
+			conv = srcPtrConvFunc(conv)
+		case dstDeref == 1 && srcDeref == 0:
+			conv = destPtrConvFunc(conv)
+		default:
+			conv = getDerefConv(dstDeref, srcDeref, conv)
+		}
+		return conv
+	}
+	//
+	if dstFieldType.Kind() != reflect.Struct || dstFieldType.Kind() != reflect.Struct {
+		return getConvFunc(dstField.fieldType, srcField.fieldType)
+	}
+	panic(unsupportedTypesError(dstField.fieldType, srcField.fieldType))
+}
+
+func getDerefConv(dstDeref, srcDeref int, fn convFunc) convFunc {
+	if dstDeref > 0 {
+		return getDerefConv(dstDeref-1, srcDeref, destPtrConvFunc(fn))
+	}
+	if srcDeref > 0 {
+		return getDerefConv(dstDeref, srcDeref-1, srcPtrConvFunc(fn))
+	}
+	return fn
+}
+
+// 解析任意级的指针
+func getOrSetS2SInfoWithMultiLevelPointer(src, dest reflect.Type, options StructToStructOptions) *s2sInfo {
 
 	s2s := getS2SInfoFromMap(src, dest)
 	if s2s != nil {
@@ -67,14 +115,28 @@ func getOrSetS2SInfo(src, dest reflect.Type, options StructToStructOptions) *s2s
 
 	srcInfo := getStructInfo(src)
 	dstInfo := getStructInfo(dest)
-	s2s = &s2sInfo{}
 
+	return setS2SInfo(src, dest, srcInfo, dstInfo, options)
+
+}
+
+func getOrSetS2SInfo(src, dest reflect.Type, options StructToStructOptions) *s2sInfo {
+	s2s := getS2SInfoFromMap(src, dest)
+	if s2s != nil {
+		return s2s
+	}
+	srcInfo := getStructInfo(src)
+	dstInfo := getStructInfo(dest)
+	return setS2SInfo(src, dest, srcInfo, dstInfo, options)
+}
+
+func setS2SInfo(src, dest reflect.Type, srcInfo, dstInfo *structInfo, options StructToStructOptions) *s2sInfo {
+	s2s := &s2sInfo{}
 	if srcInfo.structType == dstInfo.structType {
 		s2s.sameTypeConv = sameStructTypeConv(src, dest)
 		addS2SInfoToMap(src, dest, s2s)
 		return s2s
 	}
-
 	if options.FieldMappingFunc != nil {
 		for dstFieldName, dstFieldInfo := range dstInfo.fields {
 			srcField := options.FieldMappingFunc(srcInfo.structType, dstFieldName)
@@ -97,6 +159,9 @@ func getOrSetS2SInfo(src, dest reflect.Type, options StructToStructOptions) *s2s
 		}
 	}
 	addS2SInfoToMap(src, dest, s2s)
+	for _, field := range s2s.fields {
+		s2s.SetFieldConv(field)
+	}
 	return s2s
 }
 

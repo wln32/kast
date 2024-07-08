@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-var (
-	timeType      = reflect.TypeOf((*time.Time)(nil)).Elem()
-	timePtrType   = reflect.PointerTo(timeType)
-	strAnyMapType = reflect.TypeOf((*map[string]any)(nil)).Elem()
-)
-
 func reflectToInt64(src any) (int64, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {

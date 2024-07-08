@@ -2,14 +2,11 @@ package kast
 
 import "reflect"
 
-func typeElem(typ reflect.Type) reflect.Type {
+func typeElem(typ reflect.Type, n int) (reflect.Type, int) {
 	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
+		return typeElem(typ.Elem(), n+1)
 	}
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-	}
-	return typ
+	return typ, n
 }
 
 func valueElem(val reflect.Value) reflect.Value {

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var(
+var (
 	defaultMapToStructOptions = MapToStructOptions{}
 )
 
@@ -24,7 +24,7 @@ type MapToStructOptions struct {
 	//		Omitempty: []string{Omitempty}
 	//		Name     : []string{Name}
 	//		...
-	FieldTagsFunc func(structField reflect.StructField)[]string
+	FieldTagsFunc func(structField reflect.StructField) []string
 	// 在srcMap中查找fieldName, usedMapKeys是已经被赋值过的key的集合，
 	// 例如：
 	//type Dest struct{
@@ -42,12 +42,12 @@ type MapToStructOptions struct {
 	// 模糊匹配时会记住最后一次匹配到的key
 	// 以此来加速匹配，前提是当你的key不会一直发生变化时
 	// 如果你的key来回发生变化，则每次都需要模糊匹配，非常耗时
-	FuzzyMatchFieldFunc func(srcMap map[string]any, fieldName string,usedMapKeys map[string]struct{})(mapKey string,mapValue any)
+	FuzzyMatchFieldFunc func(srcMap map[string]any, fieldName string, usedMapKeys map[string]struct{}) (mapKey string, mapValue any)
 }
 
 func defaultMapToStructOptionsFieldTagsFunc(field reflect.StructField) []string {
-	fieldName:=field.Name
-	fieldTag:=field.Tag
+	fieldName := field.Name
+	fieldTag := field.Tag
 	if fieldTag == "" {
 		return []string{fieldName}
 	}
@@ -61,7 +61,6 @@ func defaultMapToStructOptionsFieldTagsFunc(field reflect.StructField) []string 
 	}
 	return []string{jsonTag, fieldName}
 }
-
 
 func defaultMapToOptionsFuzzyMatchField(src map[string]any, key string, usedKey map[string]struct{}) (string, any) {
 	for k, v := range src {

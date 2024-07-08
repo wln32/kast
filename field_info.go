@@ -125,7 +125,7 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 	case reflect.Struct:
 		return reflectToStruct(fieldType)
 	case reflect.Map:
-		return reflectToMap
+		return reflectToMap(fieldType)
 	case reflect.Ptr:
 		conv := getMapToStructFieldConvertFunc(fieldType.Elem())
 		if conv != nil {

@@ -9,6 +9,7 @@ import (
 
 type convFunc func(dest, src reflect.Value) error
 
+// 这个是用来给structToStruct用的
 func sameStructTypeConv(src, dest reflect.Type) convFunc {
 	getPtrTypeDeref := func(typ reflect.Type) int {
 		deref := 0
@@ -22,10 +23,6 @@ func sameStructTypeConv(src, dest reflect.Type) convFunc {
 	return func(dest, src reflect.Value) error {
 		switch deref {
 		case 0:
-			// 如果是一个字段的话
-			if dest.Kind() == reflect.Struct {
-				dest.Set(src.Elem())
-			}
 			// *struct => *struct
 			if src.IsNil() {
 				return nil
@@ -56,39 +53,54 @@ func sameStructTypeConv(src, dest reflect.Type) convFunc {
 	}
 }
 
-func getConvFunc(dest, src reflect.Type) convFunc {
+// 目前对于指针类型的会做深拷贝
+// 对于slice和map的不会做深拷贝
+func getConvFunc(dest, src reflect.Type) (fn convFunc) {
+
 	switch dest.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		fn = convToInt(src)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		fn = convToUint(src)
+	case reflect.Float32, reflect.Float64:
+		fn = convToFloat(src)
+	case reflect.String:
+		fn = convToString(src)
+	case reflect.Bool:
+		fn = convToBool(src)
+	case reflect.Slice /*,reflect.Array */ :
+		fn = convToSlice(dest, src)
+	case reflect.Struct:
+		fn = convToStruct(dest, src)
+	case reflect.Map:
+		fn = convToMap(dest, src)
 	case reflect.Pointer:
 		dest = dest.Elem()
-		destType := dest
-		fn := getConvFunc(dest, src)
-		return func(dest, src reflect.Value) error {
-			if dest.IsNil() {
-				dest.Set(reflect.New(destType))
-			}
-			return fn(dest.Elem(), src)
+		fn = getConvFunc(dest, src)
+		if fn == nil {
+			break
 		}
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return convToInt(src)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return convToUint(src)
-	case reflect.Float32, reflect.Float64:
-		return convToFloat(src)
-	case reflect.String:
-		return convToString(src)
-	case reflect.Bool:
-		return convToBool(src)
-	case reflect.Slice:
-		return convToBytes(src)
-	case reflect.Struct:
-		return convToStruct(dest, src)
-	case reflect.Map:
-		return convToMap(dest, src)
+		return destPtrConvFunc(fn)
 	}
-
-	panic(fmt.Errorf("不支持的dest类型转换`%v`", dest))
+	if fn == nil {
+		panic(unsupportedTypesError(src, dest))
+	}
+	return fn
 }
 
+func destPtrConvFunc(fn convFunc) convFunc {
+	return func(dest, src reflect.Value) error {
+		if dest.IsNil() {
+			dest.Set(reflect.New(dest.Type().Elem()))
+		}
+		return fn(dest.Elem(), src)
+	}
+}
+
+// 数字类型可以互相转换
+// bool转int: true=1,false=0
+// string转int: strconv.ParseInt
+// 支持任意级指针解引用
 func convToInt(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -130,12 +142,15 @@ func convToInt(src reflect.Type) convFunc {
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// 数字类型可以互相转换
+// bool转int: true=1,false=0
+// string转int: strconv.ParseUint
+// 支持任意级指针解引用
 func convToUint(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -178,12 +193,16 @@ func convToUint(src reflect.Type) convFunc {
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
 
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// 数字类型可以互相转换
+// bool转int: true=1,false=0
+// string转int: strconv.ParseFloat
+// 支持任意级指针解引用
 func convToFloat(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -198,7 +217,7 @@ func convToFloat(src reflect.Type) convFunc {
 		}
 	case reflect.Float32, reflect.Float64:
 		return func(dest, src reflect.Value) error {
-			dest.SetFloat((src.Float()))
+			dest.SetFloat(src.Float())
 			return nil
 		}
 	case reflect.String:
@@ -220,18 +239,26 @@ func convToFloat(src reflect.Type) convFunc {
 			}
 			return nil
 		}
-
 	case reflect.Pointer:
 		fn := convToFloat(src.Elem())
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// 数字类型可以转string
+// bool类型可以转string
+// []byte类型可以转string
+// 如果是以下3种类型的话,会调用json.Marshal来序列化，然后在转成string
+//
+//	1: slice (除了[]byte类型之外或者是类似于 type MySlice []byte的)
+//	2: struct
+//	3: map
+//
+// 支持任意级指针解引用
 func convToString(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -278,11 +305,14 @@ func convToString(src reflect.Type) convFunc {
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// 数字类型转bool: 非0值=true，0=false
+// string转bool: strconv.ParseBool
+// 支持任意级指针解引用
 func convToBool(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -292,13 +322,11 @@ func convToBool(src reflect.Type) convFunc {
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return func(dest, src reflect.Value) error {
-
 			dest.SetBool(src.Uint() != 0)
 			return nil
 		}
 	case reflect.Float32, reflect.Float64:
 		return func(dest, src reflect.Value) error {
-
 			dest.SetBool(src.Float() != 0)
 			return nil
 		}
@@ -316,24 +344,23 @@ func convToBool(src reflect.Type) convFunc {
 			dest.SetBool(src.Bool())
 			return nil
 		}
-
 	case reflect.Pointer:
 		fn := convToBool(src.Elem())
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
-func ptrConvFunc(fn convFunc) convFunc {
+func srcPtrConvFunc(fn convFunc) convFunc {
 	return func(dest, src reflect.Value) error {
 		if src.IsNil() {
-			return fn(dest, reflect.New(src.Type().Elem()))
-		} else {
-			return fn(dest, src.Elem())
+			// TODO nil值覆盖，或者直接退出，不设置dest
+			return nil
 		}
+		return fn(dest, src.Elem())
 	}
 }
 
@@ -357,6 +384,41 @@ func jsonMarshalToBytes(dest, src reflect.Value) error {
 	return nil
 }
 
+func convToSlice(dest, src reflect.Type) convFunc {
+	dest, _ = typeElem(dest, 0)
+	src, _ = typeElem(src, 0)
+	switch dest.Kind() {
+	case reflect.Uint8:
+		return convToBytes(src)
+	}
+	if dest == src {
+		// TODO 深拷贝
+		// []int []int64 []float64 []bool
+		return func(dest, src reflect.Value) error {
+			switch src.Kind() {
+			case reflect.Ptr:
+				if src.IsNil() {
+					return nil
+				}
+				src = src.Elem()
+			case reflect.Slice:
+			}
+			dest.Set(src)
+			return nil
+		}
+	}
+	return nil
+}
+
+// []byte
+// string
+// 如果是以下3种类型的话,会调用json.Marshal来序列化，然后在转成string
+//
+//	1: slice (除了[]byte类型之外或者是类似于 type MySlice []byte的)
+//	2: struct
+//	3: map
+//
+// 支持任意级指针解引用
 func convToBytes(src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Slice:
@@ -381,16 +443,18 @@ func convToBytes(src reflect.Type) convFunc {
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// struct转map: 会先用json.Marshal序列化，然后在反序列 (暂时这样做)
+// map转map: 目前只支持类型相同的map
+// 支持任意级指针解引用
 func convToMap(dest, src reflect.Type) convFunc {
 	switch src.Kind() {
 	case reflect.Struct:
 		// to map[string]any
-		strAnyMapType := reflect.TypeOf((*map[string]any)(nil)).Elem()
 		if dest == strAnyMapType {
 			return func(dest, src reflect.Value) error {
 				v := src.Interface()
@@ -407,7 +471,6 @@ func convToMap(dest, src reflect.Type) convFunc {
 				return nil
 			}
 		}
-		panic(fmt.Errorf("暂时不支持从`%v`转换到`%v`", src, dest))
 	case reflect.Map:
 		if dest == src {
 			return func(dest, src reflect.Value) error {
@@ -415,55 +478,59 @@ func convToMap(dest, src reflect.Type) convFunc {
 				return nil
 			}
 		}
-		panic(fmt.Errorf("map的类型不一样，暂时不支持转换,dest=%v, src=%v", dest, src))
 	case reflect.Ptr:
 		fn := convToMap(dest, src.Elem())
 		if fn == nil {
 			break
 		}
-		return ptrConvFunc(fn)
+		return srcPtrConvFunc(fn)
 	}
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
 }
 
+// map转struct: 如果map的类型是map[string]any,会调用mapToStruct
+// struct转struct:
+// 支持任意级指针解引用
 func convToStruct(dest, src reflect.Type) convFunc {
-	src = typeElem(src)
-	dest = typeElem(dest)
-
 	switch src.Kind() {
 	case reflect.Map:
-
+		if src == strAnyMapType {
+			return func(dest, src reflect.Value) error {
+				return mapToStruct(src.Interface().(map[string]any), dest, defaultMapToStructOptions)
+			}
+		}
 	case reflect.Struct:
+		fmt.Println("convToStruct ==>", dest, src)
+		if src == dest {
+			return sameStructTypeFieldConv()
+		}
 		info := getOrSetS2SInfo(src, dest, defaultStructToStructOptions)
 		return toStruct(info)
+	case reflect.Ptr:
+		fn := convToStruct(dest, src.Elem())
+		if fn == nil {
+			break
+		}
+		return srcPtrConvFunc(fn)
 	}
-	panic(fmt.Errorf("不支持的src类型`%v`", src))
+	return nil
+}
+
+func sameStructTypeFieldConv() convFunc {
+	return func(dest, src reflect.Value) error {
+		dest.Set(src)
+		return nil
+	}
 }
 
 func toStruct(info *s2sInfo) func(destStructValue, srcStructValue reflect.Value) error {
 	return func(destStructValue, srcStructValue reflect.Value) error {
-		if info.sameTypeConv != nil {
-			return info.sameTypeConv(destStructValue, srcStructValue)
-		}
 		/////////////////////////////////////////////
 		if srcStructValue.Kind() == reflect.Ptr {
 			if srcStructValue.IsNil() {
 				return nil
 			}
 			srcStructValue = srcStructValue.Elem()
-		}
-		/////////////////////////////////////////
-		if destStructValue.Kind() == reflect.Ptr {
-			if destStructValue.IsNil() {
-				destStructValue.Set(reflect.New(destStructValue.Type().Elem()))
-			}
-			destStructValue = destStructValue.Elem()
-		}
-		if destStructValue.Kind() == reflect.Ptr {
-			if destStructValue.IsNil() {
-				destStructValue.Set(reflect.New(destStructValue.Type().Elem()))
-			}
-			destStructValue = destStructValue.Elem()
 		}
 		for _, fieldInfo := range info.listFields {
 			srcFieldValue := fieldInfo.src.getFieldReflectValue(srcStructValue)

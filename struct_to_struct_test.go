@@ -48,3 +48,44 @@ func Test_struct_to_struct8(t *testing.T) {
 	t.Log(err)
 	t.Log(dest)
 }
+
+func Test_struct_to_struct_recursion(t *testing.T) {
+	type Inner1 struct {
+		Name string
+		Age  int
+		Next **Inner1
+	}
+	type Inner2 struct {
+		Name string
+		Age  int
+		Next ****Inner2
+	}
+	type Src struct {
+		Inner *Inner1
+	}
+
+	type Dest struct {
+		Inner *Inner2
+	}
+	srcInner3 := &Inner1{
+		Name: "lxq333",
+		Age:  334,
+	}
+	_ = srcInner3
+	srcInner2 := &Inner1{
+		Name: "lxq111",
+		Age:  1111,
+		Next: &srcInner3,
+	}
+	_ = srcInner2
+
+	srcInner := &Inner1{
+		Name: "lxq",
+		Age:  100,
+		Next: &srcInner2,
+	}
+	var dest Dest
+	err := kast.StructToStruct(Src{srcInner}, &dest)
+	t.Log(err)
+	t.Log(dest)
+}
