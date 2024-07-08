@@ -50,7 +50,7 @@ var mapFields8 = map[string]interface{}{
 
 func TestMapToStruct(t *testing.T) {
 	m := map[string]any{
-		"name": "wln",
+		"name": "lxq",
 		"age":  98,
 	}
 
@@ -70,4 +70,29 @@ func Test_map_to_struct8(t *testing.T) {
 	err := kast.MapToStruct(mapFields8, structPointer8)
 	t.Log(err)
 	t.Logf("%+v", structPointer8)
+}
+
+func Test_map_to_struct_Duplicate_field(t *testing.T) {
+
+	m := map[string]any{
+		"ID":   100,
+		"Name": "lxq",
+	}
+	type Nested1 struct {
+		ID string
+	}
+	type Nested2 struct {
+		ID uint
+	}
+
+	type Dest struct {
+		ID   int
+		Name string
+		Nested1
+		Nested2
+	}
+	var dest Dest
+	err := kast.MapToStruct(m, &dest)
+	t.Log(err)
+	t.Log(dest)
 }

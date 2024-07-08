@@ -70,7 +70,7 @@ func (s *structInfo) AddField(field reflect.StructField, fieldIndex []int) {
 		fieldName:  field.Name,
 		tags:       s.getFieldTags(field),
 		fieldType:  field.Type,
-		fieldIndex: field.Index,
+		fieldIndex: fieldIndex,
 		convFunc:   getMapToStructFieldConvertFunc(field.Type),
 	}
 	info.lastFuzzKey.Store(field.Name)

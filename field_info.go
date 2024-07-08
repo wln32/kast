@@ -31,14 +31,6 @@ func (c *fieldInfo) getFieldReflectValue(structValue reflect.Value) reflect.Valu
 	return fieldReflectValue(structValue, c.fieldIndex)
 }
 
-func (c *fieldInfo) getOtherFieldReflectValue(structValue reflect.Value, fieldLevel int) reflect.Value {
-	field := c.otherField[fieldLevel]
-	if len(field.fieldIndex) == 1 {
-		return structValue.Field(field.fieldIndex[0])
-	}
-	return fieldReflectValue(structValue, field.fieldIndex)
-}
-
 func fieldReflectValue(v reflect.Value, fieldIndex []int) reflect.Value {
 	for i, x := range fieldIndex {
 		if i > 0 {

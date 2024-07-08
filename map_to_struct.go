@@ -82,9 +82,9 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 				if err != nil {
 					return err
 				}
-				for i := 0; i < len(fieldInfo.otherField); i++ {
-					fieldValue := fieldInfo.getOtherFieldReflectValue(structValue, i)
-					err = fieldInfo.convFunc(fieldValue, v)
+				for _, other := range fieldInfo.otherField {
+					fieldValue := other.getFieldReflectValue(structValue)
+					err = other.convFunc(fieldValue, v)
 					if err != nil {
 						return err
 					}
@@ -112,9 +112,9 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 				if err != nil {
 					return err
 				}
-				for i := 0; i < len(fieldInfo.otherField); i++ {
-					fieldValue = fieldInfo.getOtherFieldReflectValue(structValue, i)
-					err = fieldInfo.convFunc(fieldValue, val)
+				for _, other := range fieldInfo.otherField {
+					fieldValue := other.getFieldReflectValue(structValue)
+					err = other.convFunc(fieldValue, val)
 					if err != nil {
 						return err
 					}

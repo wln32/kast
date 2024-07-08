@@ -86,9 +86,9 @@ func reflectToString(src any) (string, error) {
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(val.Int(), 64), nil
+		return strconv.FormatInt(val.Int(), 10), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(val.Uint(), 64), nil
+		return strconv.FormatUint(val.Uint(), 10), nil
 	case reflect.Float32, reflect.Float64:
 		return strconv.FormatFloat(val.Float(), 'G', -1, 64), nil
 	case reflect.String:

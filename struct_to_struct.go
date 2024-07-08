@@ -105,21 +105,6 @@ func getDerefConv(dstDeref, srcDeref int, fn convFunc) convFunc {
 	return fn
 }
 
-// 解析任意级的指针
-func getOrSetS2SInfoWithMultiLevelPointer(src, dest reflect.Type, options StructToStructOptions) *s2sInfo {
-
-	s2s := getS2SInfoFromMap(src, dest)
-	if s2s != nil {
-		return s2s
-	}
-
-	srcInfo := getStructInfo(src)
-	dstInfo := getStructInfo(dest)
-
-	return setS2SInfo(src, dest, srcInfo, dstInfo, options)
-
-}
-
 func getOrSetS2SInfo(src, dest reflect.Type, options StructToStructOptions) *s2sInfo {
 	s2s := getS2SInfoFromMap(src, dest)
 	if s2s != nil {
