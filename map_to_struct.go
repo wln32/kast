@@ -1,7 +1,6 @@
 package kast
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -44,14 +43,14 @@ func mapToStruct(src map[string]any, dest any, options MapToStructOptions) (err 
 	}
 	structValue := reflect.ValueOf(dest)
 	if structValue.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("dest必须是*struct **struct类型"))
+		panic(destTypeMismatchError(dest))
 	}
 	if structValue.IsNil() {
-		panic(fmt.Errorf("dest不能为nil"))
+		panic(parameterCannotNilError("dest"))
 	}
 	structValue = structValue.Elem()
 	if structValue.Kind() != reflect.Struct {
-		panic(fmt.Errorf("dest必须是*struct **struct类型"))
+		panic(destTypeMismatchError(dest))
 	}
 	if structValue.Kind() == reflect.Ptr {
 		if structValue.IsNil() {

@@ -384,7 +384,6 @@ func jsonMarshalToBytes(dest, src reflect.Value) error {
 
 func convToSlice(dest, src reflect.Type) convFunc {
 	dest = dest.Elem()
-
 	switch dest.Kind() {
 	case reflect.Uint8:
 		return convToBytes(src)

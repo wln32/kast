@@ -1,7 +1,6 @@
 package kast
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -13,7 +12,7 @@ func getStructInfo(structType reflect.Type, convOptions ...MapToStructOptions) *
 		structType = structType.Elem()
 	}
 	if structType.Kind() != reflect.Struct {
-		panic(fmt.Errorf("必须为struct类型"))
+		panic(typeMustBeStructError(structType))
 	}
 	info := getStructInfoFromMap(structType)
 	if info != nil {

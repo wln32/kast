@@ -1,7 +1,6 @@
 package kast
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 )
@@ -13,14 +12,14 @@ var (
 
 func RegisterCustomConvertFunc(src, dest reflect.Type, fn convFunc) {
 	if dest == nil || src == nil || fn == nil {
-		panic(fmt.Errorf("注册自定义转换的参数不能为空"))
+		panic(parameterCannotNilError("[dest] or [src] or [fn]"))
 	}
 	dstType, _ := typeElem(dest, 0)
 	srcType, _ := typeElem(src, 0)
 
 	conv := getCustomConvertFromMap(srcType, dstType)
 	if conv != nil {
-		panic(fmt.Errorf("重复注册自定义转换类型`%v`到`%v`", src, dest))
+		panic(duplicateRegisterError(src, dest))
 	}
 	addCustomConvertToMap(srcType, dstType, fn)
 }

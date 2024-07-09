@@ -1,7 +1,6 @@
 package kast
 
 import (
-	"fmt"
 	"reflect"
 	"sync/atomic"
 )
@@ -124,7 +123,7 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 			return mapToStructFieldPtrConvFunc(conv)
 		}
 	}
-	panic(fmt.Errorf("不支持的类型转换%v", fieldType))
+	panic(mapToStructUnsupportedTypesError(fieldType))
 }
 
 func mapToStructFieldPtrConvFunc(convFunc func(to reflect.Value, from any) error) func(to reflect.Value, from any) error {

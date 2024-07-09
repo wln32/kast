@@ -1,7 +1,6 @@
 package kast
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 )
@@ -71,27 +70,27 @@ func (s2s *s2sInfo) getS2SFieldConvFunc(dstField, srcField *fieldInfo) convFunc 
 
 	conv := getCustomConvertFromMap(srcFieldType, dstFieldType)
 	if conv != nil {
-		return getDerefConv(dstDeref, srcDeref, conv)
+		return getDerefConvFunc(dstDeref, srcDeref, conv)
 	}
 	if srcFieldType == dstFieldType {
-		return getDerefConv(dstDeref, srcDeref, sameTypeFieldConv())
+		return getDerefConvFunc(dstDeref, srcDeref, sameTypeFieldConv())
 	}
 	switch {
 	case srcFieldType.Kind() == reflect.Struct && dstFieldType.Kind() == reflect.Struct:
 		info := getOrSetS2SInfo(srcFieldType, dstFieldType, defaultStructToStructOptions)
 		conv := toStruct(info)
-		return getDerefConv(dstDeref, srcDeref, conv)
+		return getDerefConvFunc(dstDeref, srcDeref, conv)
 	default:
 		return getConvFunc(dstField.fieldType, srcField.fieldType)
 	}
 }
 
-func getDerefConv(dstDeref, srcDeref int, fn convFunc) convFunc {
+func getDerefConvFunc(dstDeref, srcDeref int, fn convFunc) convFunc {
 	if dstDeref > 0 {
-		return getDerefConv(dstDeref-1, srcDeref, destPtrConvFunc(fn))
+		return getDerefConvFunc(dstDeref-1, srcDeref, destPtrConvFunc(fn))
 	}
 	if srcDeref > 0 {
-		return getDerefConv(dstDeref, srcDeref-1, srcPtrConvFunc(fn))
+		return getDerefConvFunc(dstDeref, srcDeref-1, srcPtrConvFunc(fn))
 	}
 	return fn
 }
@@ -150,12 +149,15 @@ func StructToStructWithOptions(src, dest any, options StructToStructOptions) err
 }
 
 func structToStruct(src, dest any, options StructToStructOptions) error {
+	if src == nil || dest == nil {
+		panic(parameterCannotNilError("[src] or [dest]"))
+	}
 	destStructValue := reflect.ValueOf(dest)
 	if destStructValue.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("dest必须为*struct or **struct"))
+		panic(destTypeMismatchError(dest))
 	}
 	if destStructValue.IsNil() {
-		panic(fmt.Errorf("dest不能为nil"))
+		panic(parameterCannotNilError("dest"))
 	}
 
 	srcType := reflect.TypeOf(src)
