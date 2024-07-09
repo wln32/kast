@@ -1,8 +1,10 @@
 package kast_test
 
 import (
+	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/wln32/kast"
 )
 
@@ -53,27 +55,39 @@ func TestMapToStruct(t *testing.T) {
 		"name": "lxq",
 		"age":  98,
 	}
-
 	type Dest struct {
 		Name string
 		Age  int
 	}
-	var dest Dest
-	err := kast.MapToStruct(m, &dest)
-	t.Log(err)
-	t.Log(dest)
+	testRun(t, func(assert *assert.Assertions) {
+		var dest Dest
+		err := kast.MapToStruct(m, &dest)
+		assert.Nil(err)
+		assert.EqualValues(m["name"], dest.Name)
+		assert.EqualValues(m["age"], dest.Age)
+	})
 }
 
 func Test_map_to_struct8(t *testing.T) {
-
-	structPointer8 := &testStructType8{}
-	err := kast.MapToStruct(mapFields8, structPointer8)
-	t.Log(err)
-	t.Logf("%+v", structPointer8)
+	testRun(t, func(assert *assert.Assertions) {
+		structPointer8 := &testStructType8{}
+		err := kast.MapToStruct(mapFields8, structPointer8)
+		assert.Nil(err)
+		assert.EqualValues(mapFields8["name"], structPointer8.Name)
+		assert.EqualValues(mapFields8["score"], structPointer8.Score)
+		assert.EqualValues(mapFields8["age"], structPointer8.Age)
+		assert.EqualValues(mapFields8["id"], structPointer8.ID)
+		assert.EqualValues(mapFields8["categoryId"], structPointer8.CategoryId)
+		assert.EqualValues(mapFields8["price"], structPointer8.Price)
+		assert.EqualValues(mapFields8["code"], structPointer8.Code)
+		assert.EqualValues(mapFields8["image"], structPointer8.Image)
+		assert.EqualValues(mapFields8["description"], structPointer8.Description)
+		assert.EqualValues(mapFields8["status"], structPointer8.Status)
+		assert.EqualValues(mapFields8["idType"], structPointer8.IdType)
+	})
 }
 
 func Test_map_to_struct_Duplicate_field(t *testing.T) {
-
 	m := map[string]any{
 		"ID":   100,
 		"Name": "lxq",
@@ -84,15 +98,19 @@ func Test_map_to_struct_Duplicate_field(t *testing.T) {
 	type Nested2 struct {
 		ID uint
 	}
-
 	type Dest struct {
 		ID   int
 		Name string
 		Nested1
 		Nested2
 	}
-	var dest Dest
-	err := kast.MapToStruct(m, &dest)
-	t.Log(err)
-	t.Log(dest)
+	testRun(t, func(assert *assert.Assertions) {
+		var dest Dest
+		err := kast.MapToStruct(m, &dest)
+		assert.Nil(err)
+		assert.Equal(m["ID"], dest.ID)
+		assert.Equal(m["Name"], dest.Name)
+		assert.EqualValues(strconv.Itoa(m["ID"].(int)), dest.Nested1.ID)
+		assert.EqualValues(m["ID"], dest.Nested2.ID)
+	})
 }

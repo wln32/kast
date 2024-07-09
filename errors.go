@@ -6,5 +6,5 @@ import (
 )
 
 func unsupportedTypesError(from, to reflect.Type) error {
-	return fmt.Errorf("不支持从`%v`转换到`%v`", from, to)
+	return fmt.Errorf("kast: 不支持从`%v`转换到`%v`", from, to)
 }
