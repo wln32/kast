@@ -35,7 +35,7 @@ func reflectToUint64(src any) (uint64, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return uint64(val.Int()), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return uint64(val.Uint()), nil
+		return val.Uint(), nil
 	case reflect.Float32, reflect.Float64:
 		return uint64(val.Float()), nil
 	case reflect.String:

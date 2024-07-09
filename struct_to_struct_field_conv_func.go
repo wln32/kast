@@ -2,7 +2,6 @@ package kast
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -56,7 +55,6 @@ func sameStructTypeConv(src, dest reflect.Type) convFunc {
 // 目前对于指针类型的会做深拷贝
 // 对于slice和map的不会做深拷贝
 func getConvFunc(dest, src reflect.Type) (fn convFunc) {
-
 	switch dest.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		fn = convToInt(src)
@@ -385,8 +383,8 @@ func jsonMarshalToBytes(dest, src reflect.Value) error {
 }
 
 func convToSlice(dest, src reflect.Type) convFunc {
-	dest, _ = typeElem(dest, 0)
-	src, _ = typeElem(src, 0)
+	dest = dest.Elem()
+
 	switch dest.Kind() {
 	case reflect.Uint8:
 		return convToBytes(src)
@@ -499,13 +497,6 @@ func convToStruct(dest, src reflect.Type) convFunc {
 				return mapToStruct(src.Interface().(map[string]any), dest, defaultMapToStructOptions)
 			}
 		}
-	case reflect.Struct:
-		fmt.Println("convToStruct ==>", dest, src)
-		if src == dest {
-			return sameStructTypeFieldConv()
-		}
-		info := getOrSetS2SInfo(src, dest, defaultStructToStructOptions)
-		return toStruct(info)
 	case reflect.Ptr:
 		fn := convToStruct(dest, src.Elem())
 		if fn == nil {
@@ -516,7 +507,8 @@ func convToStruct(dest, src reflect.Type) convFunc {
 	return nil
 }
 
-func sameStructTypeFieldConv() convFunc {
+func sameTypeFieldConv() convFunc {
+	// TODO 如果两边都是指针类型的话，默认深拷贝
 	return func(dest, src reflect.Value) error {
 		dest.Set(src)
 		return nil

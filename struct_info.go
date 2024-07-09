@@ -15,7 +15,6 @@ func addStructInfoToMap(info *structInfo) {
 }
 
 func getStructInfoFromMap(typ reflect.Type) *structInfo {
-	// info := structInfoMap[typ]
 	info, ok := structInfoMap.Load(typ)
 	if ok {
 		return info.(*structInfo)

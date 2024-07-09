@@ -66,33 +66,24 @@ func (s2s *s2sInfo) SetFieldConv(info *s2sFieldInfo) {
 }
 
 func (s2s *s2sInfo) getS2SFieldConvFunc(dstField, srcField *fieldInfo) convFunc {
-
 	dstFieldType, dstDeref := typeElem(dstField.fieldType, 0)
 	srcFieldType, srcDeref := typeElem(srcField.fieldType, 0)
 
-	if srcFieldType.Kind() == reflect.Struct && dstFieldType.Kind() == reflect.Struct {
+	conv := getCustomConvertFromMap(srcFieldType, dstFieldType)
+	if conv != nil {
+		return getDerefConv(dstDeref, srcDeref, conv)
+	}
+	if srcFieldType == dstFieldType {
+		return getDerefConv(dstDeref, srcDeref, sameTypeFieldConv())
+	}
+	switch {
+	case srcFieldType.Kind() == reflect.Struct && dstFieldType.Kind() == reflect.Struct:
 		info := getOrSetS2SInfo(srcFieldType, dstFieldType, defaultStructToStructOptions)
 		conv := toStruct(info)
-		switch {
-		case dstDeref == 0 && srcDeref == 0:
-			//
-		case dstDeref == 1 && srcDeref == 1:
-			// conv = srcPtrConvFunc(destPtrConvFunc(conv))
-			conv = destPtrConvFunc(srcPtrConvFunc(conv))
-		case dstDeref == 0 && srcDeref == 1:
-			conv = srcPtrConvFunc(conv)
-		case dstDeref == 1 && srcDeref == 0:
-			conv = destPtrConvFunc(conv)
-		default:
-			conv = getDerefConv(dstDeref, srcDeref, conv)
-		}
-		return conv
-	}
-	//
-	if dstFieldType.Kind() != reflect.Struct || dstFieldType.Kind() != reflect.Struct {
+		return getDerefConv(dstDeref, srcDeref, conv)
+	default:
 		return getConvFunc(dstField.fieldType, srcField.fieldType)
 	}
-	panic(unsupportedTypesError(dstField.fieldType, srcField.fieldType))
 }
 
 func getDerefConv(dstDeref, srcDeref int, fn convFunc) convFunc {

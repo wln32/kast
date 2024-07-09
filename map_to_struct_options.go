@@ -6,8 +6,15 @@ import (
 )
 
 var (
-	defaultMapToStructOptions = MapToStructOptions{}
+	defaultMapToStructOptions = MapToStructOptions{
+		FieldTagsFunc:       defaultMapToStructOptionsFieldTagsFunc,
+		FuzzyMatchFieldFunc: defaultMapToOptionsFuzzyMatchField,
+	}
 )
+
+func getDefaultMapToStructOptions() MapToStructOptions {
+	return defaultMapToStructOptions
+}
 
 type MapToStructOptions struct {
 	// 返回值,默认返回字段的json tag和字段名，按照顺序
