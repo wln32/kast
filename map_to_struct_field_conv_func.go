@@ -263,12 +263,12 @@ func reflectToStringSlice(src any) (res []string, err error) {
 		if res != nil {
 			return
 		}
-		v := reflect.ValueOf(src)
-		if v.Kind() != reflect.Slice {
+		typ := reflect.TypeOf(src)
+		if typ.Kind() != reflect.Slice {
 			return nil, fmt.Errorf("暂时不支持将`%T`类型转换到`[]string`", src)
 		}
-		elemKind := v.Elem().Kind()
-		switch elemKind {
+		v := reflect.ValueOf(src)
+		switch typ.Elem().Kind() {
 		case reflect.Int:
 			return reflectToStringSlice(*(*[]int)(getEface(v.Interface()).data))
 		case reflect.Int8:
@@ -292,7 +292,7 @@ func reflectToStringSlice(src any) (res []string, err error) {
 		case reflect.Float64:
 			return reflectToStringSlice(*(*[]float64)(getEface(v.Interface()).data))
 		case reflect.String:
-			return reflectToStringSlice(*(*[]string)(getEface(v.Interface()).data))
+			return *(*[]string)(getEface(v.Interface()).data), nil
 		case reflect.Bool:
 			return reflectToStringSlice(*(*[]bool)(getEface(v.Interface()).data))
 		}

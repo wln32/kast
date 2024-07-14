@@ -137,11 +137,13 @@ func Test_map_to_struct_to_any(t *testing.T) {
 }
 
 func Test_map_to_struct_to_stringslice(t *testing.T) {
+	type Ints []int
 	m := map[string]any{
 		"names":  []string{"lxq", "qer", "fkg", "gfg"},
-		"ages":   []int{20, 21, 15, 16, 89, 10, 17, 56},
+		"ages":   Ints{20, 21, 15, 16, 89, 10, 17, 56},
 		"scores": []float64{99.01, 78, 56, 29, 89},
 	}
+
 	type Dest struct {
 		Names  []string
 		Ages   []string
