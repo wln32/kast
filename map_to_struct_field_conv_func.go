@@ -200,3 +200,103 @@ func reflectToMap(dstType reflect.Type) func(dest reflect.Value, src any) error 
 	}
 	panic(fmt.Errorf("不支持的类型转换%v", dstType))
 }
+
+func reflectToAny(src any) (any, error) {
+	return src, nil
+}
+
+func reflectToStringSlice(src any) (res []string, err error) {
+	switch arr := src.(type) {
+	case []int:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.Itoa(arr[i]))
+		}
+	case []int64:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatInt(arr[i], 10))
+		}
+	case []uint:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatUint(uint64(arr[i]), 10))
+		}
+	case []uint64:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatUint(arr[i], 10))
+		}
+	case []float32:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatFloat(float64(arr[i]), 'G', -1, 32))
+		}
+	case []float64:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatFloat(arr[i], 'G', -1, 64))
+		}
+	case []bool:
+		for i := 0; i < len(arr); i++ {
+			res = append(res, strconv.FormatBool(arr[i]))
+		}
+	case []string:
+		return arr, nil
+	default:
+		switch arr := src.(type) {
+		case []int8:
+			for i := 0; i < len(arr); i++ {
+				res = append(res, strconv.Itoa(int(arr[i])))
+			}
+		case []int16:
+			for i := 0; i < len(arr); i++ {
+				res = append(res, strconv.Itoa(int(arr[i])))
+			}
+		case []int32:
+			for i := 0; i < len(arr); i++ {
+				res = append(res, strconv.Itoa(int(arr[i])))
+			}
+		case []uint16:
+			for i := 0; i < len(arr); i++ {
+				res = append(res, strconv.FormatUint(uint64(arr[i]), 10))
+			}
+		case []uint32:
+			for i := 0; i < len(arr); i++ {
+				res = append(res, strconv.FormatUint(uint64(arr[i]), 10))
+			}
+		}
+		if res != nil {
+			return
+		}
+		v := reflect.ValueOf(src)
+		if v.Kind() != reflect.Slice {
+			return nil, fmt.Errorf("暂时不支持将`%T`类型转换到`[]string`", src)
+		}
+		elemKind := v.Elem().Kind()
+		switch elemKind {
+		case reflect.Int:
+			return reflectToStringSlice(*(*[]int)(getEface(v.Interface()).data))
+		case reflect.Int8:
+			return reflectToStringSlice(*(*[]int8)(getEface(v.Interface()).data))
+		case reflect.Int16:
+			return reflectToStringSlice(*(*[]int16)(getEface(v.Interface()).data))
+		case reflect.Int32:
+			return reflectToStringSlice(*(*[]int32)(getEface(v.Interface()).data))
+		case reflect.Int64:
+			return reflectToStringSlice(*(*[]int64)(getEface(v.Interface()).data))
+		case reflect.Uint:
+			return reflectToStringSlice(*(*[]uint)(getEface(v.Interface()).data))
+		case reflect.Uint16:
+			return reflectToStringSlice(*(*[]uint16)(getEface(v.Interface()).data))
+		case reflect.Uint32:
+			return reflectToStringSlice(*(*[]uint32)(getEface(v.Interface()).data))
+		case reflect.Uint64:
+			return reflectToStringSlice(*(*[]uint64)(getEface(v.Interface()).data))
+		case reflect.Float32:
+			return reflectToStringSlice(*(*[]float32)(getEface(v.Interface()).data))
+		case reflect.Float64:
+			return reflectToStringSlice(*(*[]float64)(getEface(v.Interface()).data))
+		case reflect.String:
+			return reflectToStringSlice(*(*[]string)(getEface(v.Interface()).data))
+		case reflect.Bool:
+			return reflectToStringSlice(*(*[]bool)(getEface(v.Interface()).data))
+		}
+		return nil, fmt.Errorf("暂时不支持将`%T`类型转换到`[]string`", src)
+	}
+	return
+}

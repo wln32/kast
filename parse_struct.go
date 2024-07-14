@@ -57,9 +57,11 @@ func parseStruct(structType reflect.Type, parentIndex []int, structInfo *structI
 		if structField.IsExported() == false {
 			continue
 		}
+		// 支持空接口
 		if fieldType.Kind() == reflect.Interface {
-			// TODO 支持空接口
-			continue
+			if fieldType.NumMethod() > 0 {
+				continue
+			}
 		}
 		if structField.Anonymous == false {
 			structInfo.AddField(structField, append(parentIndex, i))

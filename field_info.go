@@ -105,18 +105,56 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 			return nil
 		}
 	case reflect.Slice:
-		return func(dest reflect.Value, src any) error {
-			b, err := reflectToBytes(src)
-			if err != nil {
-				return err
+		var toSlice func(typ reflect.Type, deref int) func(dest reflect.Value, src any) error
+		toSlice = func(typ reflect.Type, deref int) func(dest reflect.Value, src any) error {
+			switch typ.Elem().Kind() {
+			case reflect.Uint8:
+				if deref > 0 {
+					return nil
+				}
+				return func(dest reflect.Value, src any) error {
+					b, err := reflectToBytes(src)
+					if err != nil {
+						return err
+					}
+					dest.SetBytes(b)
+					return nil
+				}
+			case reflect.String:
+				return func(dest reflect.Value, src any) error {
+					b, err := reflectToStringSlice(src)
+					if err != nil {
+						return err
+					}
+					dest.Set(reflect.ValueOf(b))
+					return nil
+				}
+			default:
+				// TODO: 支持切片类型的转换
+				// []int => []string
+				// []struct => []struct
+				return nil
 			}
-			dest.SetBytes(b)
-			return nil
+		}
+		fn := toSlice(fieldType, 0)
+		if fn != nil {
+			return fn
 		}
 	case reflect.Struct:
 		return reflectToStruct(fieldType)
 	case reflect.Map:
 		return reflectToMap(fieldType)
+	case reflect.Interface:
+		if fieldType.NumMethod() == 0 {
+			return func(dest reflect.Value, src any) error {
+				v, err := reflectToAny(src)
+				if err != nil {
+					return err
+				}
+				dest.Set(reflect.ValueOf(v))
+				return nil
+			}
+		}
 	case reflect.Ptr:
 		conv := getMapToStructFieldConvertFunc(fieldType.Elem())
 		if conv != nil {

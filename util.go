@@ -1,6 +1,9 @@
 package kast
 
-import "reflect"
+import (
+	"reflect"
+	"unsafe"
+)
 
 func typeElem(typ reflect.Type, n int) (reflect.Type, int) {
 	if typ.Kind() == reflect.Ptr {
@@ -17,4 +20,13 @@ func valueElem(val reflect.Value) reflect.Value {
 		val = val.Elem()
 	}
 	return val
+}
+
+type eface struct {
+	typ  unsafe.Pointer
+	data unsafe.Pointer
+}
+
+func getEface(a any) *eface {
+	return (*eface)(unsafe.Pointer(&a))
 }

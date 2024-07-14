@@ -114,3 +114,45 @@ func Test_map_to_struct_Duplicate_field(t *testing.T) {
 		assert.EqualValues(m["ID"], dest.Nested2.ID)
 	})
 }
+
+func Test_map_to_struct_to_any(t *testing.T) {
+	m := map[string]any{
+		"name":   "lxq",
+		"age":    98,
+		"scores": []float64{99.01, 78, 56, 29, 89},
+	}
+	type Dest struct {
+		Name   *any
+		Age    any
+		Scores any
+	}
+	testRun(t, func(assert *assert.Assertions) {
+		var dest Dest
+		err := kast.MapToStruct(m, &dest)
+		assert.Nil(err)
+		assert.EqualValues(m["name"], *dest.Name)
+		assert.EqualValues(m["age"], dest.Age)
+		assert.EqualValues(m["scores"], dest.Scores)
+	})
+}
+
+func Test_map_to_struct_to_stringslice(t *testing.T) {
+	m := map[string]any{
+		"names":  []string{"lxq", "qer", "fkg", "gfg"},
+		"ages":   []int{20, 21, 15, 16, 89, 10, 17, 56},
+		"scores": []float64{99.01, 78, 56, 29, 89},
+	}
+	type Dest struct {
+		Names  []string
+		Ages   []string
+		Scores []string
+	}
+	testRun(t, func(assert *assert.Assertions) {
+		var dest Dest
+		err := kast.MapToStruct(m, &dest)
+		assert.Nil(err)
+		assert.EqualValues(m["names"], dest.Names)
+		assert.EqualValues([]string{"20", "21", "15", "16", "89", "10", "17", "56"}, dest.Ages)
+		assert.EqualValues([]string{"99.01", "78", "56", "29", "89"}, dest.Scores)
+	})
+}
