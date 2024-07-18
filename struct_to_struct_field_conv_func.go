@@ -72,6 +72,11 @@ func getConvFunc(dest, src reflect.Type) (fn convFunc) {
 		fn = convToStruct(dest, src)
 	case reflect.Map:
 		fn = convToMap(dest, src)
+	case reflect.Interface:
+		// 只支持空接口
+		if dest.NumMethod() == 0 {
+			fn = convToAny(src)
+		}
 	case reflect.Pointer:
 		dest = dest.Elem()
 		fn = getConvFunc(dest, src)
@@ -531,6 +536,13 @@ func toStruct(info *s2sInfo) func(destStructValue, srcStructValue reflect.Value)
 				return err
 			}
 		}
+		return nil
+	}
+}
+
+func convToAny(src reflect.Type) convFunc {
+	return func(dest, src reflect.Value) error {
+		dest.Set(src)
 		return nil
 	}
 }

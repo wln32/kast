@@ -163,3 +163,42 @@ func Test_s2s_CustomConvert(t *testing.T) {
 		assert.EqualValues("custom 200", dest.Custom)
 	})
 }
+
+func Test_s2s_ToAny(t *testing.T) {
+	type Dest struct {
+		Name any
+		Age  any
+	}
+	testRun(t, func(assert *assert.Assertions) {
+		type Src struct {
+			Name string
+			Age  int
+		}
+		src := Src{
+			Name: "lxq",
+			Age:  98,
+		}
+		var dest Dest
+		err := kast.StructToStruct(src, &dest)
+		assert.Nil(err)
+		assert.Equal(src.Name, dest.Name)
+		assert.Equal(src.Age, dest.Age)
+	})
+	testRun(t, func(assert *assert.Assertions) {
+		type Src struct {
+			Name *string
+			Age  *int
+		}
+		name := "lxq"
+		age := 98
+		src := Src{
+			Name: &name,
+			Age:  &age,
+		}
+		var dest Dest
+		err := kast.StructToStruct(src, &dest)
+		assert.Nil(err)
+		assert.Equal(src.Name, dest.Name)
+		assert.Equal(src.Age, dest.Age)
+	})
+}
