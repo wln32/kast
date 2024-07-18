@@ -387,15 +387,9 @@ func jsonMarshalToBytes(dest, src reflect.Value) error {
 	return nil
 }
 
-func convToSlice(dest, src reflect.Type) convFunc {
-	dest = dest.Elem()
-	switch dest.Kind() {
-	case reflect.Uint8:
-		return convToBytes(src)
-	}
+func convToSlice(dest, src reflect.Type) (fn convFunc) {
 	if dest == src {
-		// TODO 深拷贝
-		// []int []int64 []float64 []bool
+		sameTypeFieldConv()
 		return func(dest, src reflect.Value) error {
 			switch src.Kind() {
 			case reflect.Ptr:
@@ -409,6 +403,20 @@ func convToSlice(dest, src reflect.Type) convFunc {
 			return nil
 		}
 	}
+	destElemKind := dest.Elem()
+	switch destElemKind.Kind() {
+	case reflect.Uint8:
+		return convToBytes(src)
+	case reflect.String:
+		// []int  []int8   []int16  []int32  []int64
+		// []uint          []uint16 []uint32 []uint64
+		// []float32       []float64
+		// []bool
+		// []string
+		// 支持将以上类型转换到[]string
+		return reflectConvToStrings(src)
+	}
+
 	return nil
 }
 
