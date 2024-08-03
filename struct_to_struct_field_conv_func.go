@@ -389,7 +389,6 @@ func jsonMarshalToBytes(dest, src reflect.Value) error {
 
 func convToSlice(dest, src reflect.Type) (fn convFunc) {
 	if dest == src {
-		sameTypeFieldConv()
 		return func(dest, src reflect.Value) error {
 			switch src.Kind() {
 			case reflect.Ptr:
@@ -416,7 +415,6 @@ func convToSlice(dest, src reflect.Type) (fn convFunc) {
 		// 支持将以上类型转换到[]string
 		return reflectConvToStrings(src)
 	}
-
 	return nil
 }
 

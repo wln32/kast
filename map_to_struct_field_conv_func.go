@@ -130,18 +130,33 @@ func reflectToBool(src any) (bool, error) {
 	}
 }
 
-func reflectToBytes(src any) ([]byte, error) {
+// string => []byte
+// []byte => []byte
+// map    => []byte
+// struct => []byte
+func reflectToBytes(src any, deepCopy bool) ([]byte, error) {
 	switch v := src.(type) {
 	case string:
 		return []byte(v), nil
 	case []byte:
+		if deepCopy {
+			dest := make([]byte, len(v))
+			copy(dest, v)
+			return dest, nil
+		}
 		return v, nil
 	}
 	val := reflect.ValueOf(src)
 	switch val.Kind() {
 	case reflect.Slice:
 		if val.Elem().Kind() == reflect.Uint8 {
-			return val.Bytes(), nil
+			b := val.Bytes()
+			if deepCopy {
+				dest := make([]byte, len(b))
+				copy(dest, b)
+				return dest, nil
+			}
+			return b, nil
 		}
 		return sliceOrMapOrStructToBytes(val)
 	case reflect.Map:
@@ -203,6 +218,42 @@ func reflectToMap(dstType reflect.Type) func(dest reflect.Value, src any) error 
 
 func reflectToAny(src any) (any, error) {
 	return src, nil
+}
+
+func reflectToSlice(dest reflect.Type) func(dest reflect.Value, src any) error {
+	destElemKind := dest.Elem().Kind()
+	switch destElemKind {
+	case reflect.Uint8:
+		// string => []byte
+		// []byte => []byte  deep copy
+		// map    => []byte
+		// struct => []byte
+		return func(dest reflect.Value, src any) error {
+			b, err := reflectToBytes(src, true)
+			if err != nil {
+				return err
+			}
+			dest.Set(reflect.ValueOf(b))
+			return nil
+		}
+	case reflect.String:
+		// []int  []int8   []int16  []int32  []int64
+		// []uint          []uint16 []uint32 []uint64
+		// []float32       []float64
+		// []bool
+		// []string
+		// 支持将以上类型转换到[]string
+		// 深拷贝
+		return func(dest reflect.Value, src any) error {
+			b, err := reflectToStringSlice(src)
+			if err != nil {
+				return err
+			}
+			dest.Set(reflect.ValueOf(b))
+			return nil
+		}
+	}
+	return nil
 }
 
 func reflectToStringSlice(src any) (res []string, err error) {

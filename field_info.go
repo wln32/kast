@@ -59,7 +59,6 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return func(dest reflect.Value, src any) error {
 			v, err := reflectToInt64(src)
-			//v, err := toInt64(src)
 			if err != nil {
 				return err
 			}
@@ -78,7 +77,6 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 	case reflect.Float32, reflect.Float64:
 		return func(dest reflect.Value, src any) error {
 			v, err := reflectToFloat64(src)
-			//v, err := toFloat64(src)
 			if err != nil {
 				return err
 			}
@@ -88,7 +86,6 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 	case reflect.String:
 		return func(dest reflect.Value, src any) error {
 			v, err := reflectToString(src)
-			//v, err := toString(src)
 			if err != nil {
 				return err
 			}
@@ -105,40 +102,9 @@ func getMapToStructFieldConvertFunc(fieldType reflect.Type) func(dest reflect.Va
 			return nil
 		}
 	case reflect.Slice:
-		var toSlice func(typ reflect.Type, deref int) func(dest reflect.Value, src any) error
-		toSlice = func(typ reflect.Type, deref int) func(dest reflect.Value, src any) error {
-			switch typ.Elem().Kind() {
-			case reflect.Uint8:
-				if deref > 0 {
-					return nil
-				}
-				return func(dest reflect.Value, src any) error {
-					b, err := reflectToBytes(src)
-					if err != nil {
-						return err
-					}
-					dest.SetBytes(b)
-					return nil
-				}
-			case reflect.String:
-				return func(dest reflect.Value, src any) error {
-					b, err := reflectToStringSlice(src)
-					if err != nil {
-						return err
-					}
-					dest.Set(reflect.ValueOf(b))
-					return nil
-				}
-			default:
-				// TODO: 支持切片类型的转换
-				// []int => []string
-				// []struct => []struct
-				return nil
-			}
-		}
-		fn := toSlice(fieldType, 0)
-		if fn != nil {
-			return fn
+		conv := reflectToSlice(fieldType)
+		if conv != nil {
+			return conv
 		}
 	case reflect.Struct:
 		return reflectToStruct(fieldType)

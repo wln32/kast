@@ -202,3 +202,31 @@ func Test_s2s_ToAny(t *testing.T) {
 		assert.Equal(src.Age, dest.Age)
 	})
 }
+
+func Test_s2s_ToStrings(t *testing.T) {
+	type Dest struct {
+		Scores1 []string
+		Scores2 []string
+		Ages1   []string
+		Ages2   []string
+	}
+	type Src struct {
+		Scores1 []float32
+		Scores2 []float64
+		Ages1   []int
+		Ages2   []int64
+	}
+	testRun(t, func(assert *assert.Assertions) {
+		src := Src{
+			Scores1: []float32{20.5, 99.8},
+			Scores2: []float64{20.5, 99.8},
+			Ages1:   []int{20, 99},
+			Ages2:   []int64{20, 99},
+		}
+		var dest Dest
+		err := kast.StructToStruct(src, &dest)
+		assert.Nil(err)
+		t.Log(dest)
+	})
+
+}
