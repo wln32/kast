@@ -16,6 +16,7 @@ type StructToStructOptions struct {
 	DeepCopyPtrStruct bool
 	DeepCopySlice     bool
 	DeepCopyMap       bool
+	// TODO: 暂时未实现
 	// DeepCopy = DeepCopyPtrStruct + DeepCopySlice + DeepCopyMap
 	DeepCopy bool
 }

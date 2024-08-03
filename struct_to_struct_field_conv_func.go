@@ -163,7 +163,7 @@ func convToUint(src reflect.Type) convFunc {
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return func(dest, src reflect.Value) error {
-			dest.SetUint((src.Uint()))
+			dest.SetUint(src.Uint())
 			return nil
 		}
 	case reflect.Float32, reflect.Float64:
